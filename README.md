@@ -1,126 +1,128 @@
-# Análisis de noticias de Infobae con PLN
+🇪🇸 [Leer en español](README.es.md)
 
-Proyecto que arma un corpus de noticias en español a partir del feed RSS de Infobae
-y compara distintas técnicas de procesamiento de lenguaje natural (PLN) sobre ese corpus.
+# NLP Analysis of Infobae News
 
-## Pregunta
+A project that builds a corpus of Spanish-language news from Infobae's RSS feed
+and compares different natural language processing (NLP) techniques on that corpus.
 
-¿Qué se puede aprender de un corpus de noticias en español con técnicas de PLN, y cómo se
-comparan esas técnicas entre sí?
+## Question
 
-## Qué hace el proyecto
+What can be learned from a Spanish-language news corpus using NLP techniques, and how do
+those techniques compare with each other?
 
-1. **Obtención de datos:** un script descarga el feed RSS y acumula las notas en un CSV, sin duplicados.
-2. **Preprocesamiento:** limpieza y lematización con spaCy, conservando las negaciones (`no`, `nunca`, `sin`...),
-   que spaCy trata como stopwords.
-3. **Predecir la edición del diario** (`america`, `espana`, `mexico`, `peru`, `colombia`) a partir del texto:
-   TF-IDF contra embeddings, ambos con regresión logística y validación cruzada de 5 folds, con un control
-   del largo de texto que lee cada método.
-4. **Descubrir temas sin etiquetas:** KMeans y BERTopic sobre embeddings, y comparación entre ambos.
-5. **Clasificar por tema sin entrenar** (zero-shot con embeddings), evaluado con la sección temática que
-   aparece en la URL de algunas notas.
+## What the project does
 
-## Estructura del repositorio
+1. **Data collection:** a script downloads the RSS feed and accumulates the articles in a CSV, without duplicates.
+2. **Preprocessing:** cleaning and lemmatization with spaCy, keeping negations (`no`, `nunca`, `sin`...),
+   which spaCy treats as stopwords.
+3. **Predicting the newspaper edition** (`america`, `espana`, `mexico`, `peru`, `colombia`) from the text:
+   TF-IDF vs. embeddings, both with logistic regression and 5-fold cross-validation, with a control
+   for the length of text each method reads.
+4. **Discovering topics without labels:** KMeans and BERTopic on embeddings, and a comparison between the two.
+5. **Classifying by topic without training** (zero-shot with embeddings), evaluated against the thematic section
+   that appears in the URL of some articles.
+
+## Repository structure
 
 ```
-proyecto_noticias_infobae/
+project_news_infobae/
 ├── README.md
 ├── requirements.txt
 ├── .gitignore
 ├── src/
-│   └── actualizar_corpus.py     # descarga el feed y acumula las notas en data/
+│   └── actualizar_corpus.py     # downloads the feed and accumulates articles in data/
 ├── notebooks/
-│   └── analisis.ipynb           # análisis completo, explicado paso a paso
-└── data/                        # el corpus no se incluye en el repositorio
+│   └── analisis.ipynb           # full analysis, explained step by step
+└── data/                        # the corpus is not included in the repository
 ```
 
-## Cómo reproducirlo
+## How to reproduce
 
-Probado con Python 3.13.
+Tested with Python 3.13.
 
-1. Instalar las dependencias:
+1. Install the dependencies:
 
    ```bash
    pip install -r requirements.txt
    python -m spacy download es_core_news_md
    ```
 
-2. Construir el corpus ejecutando el script **varias veces por día durante varios días**:
+2. Build the corpus by running the script **several times a day for several days**:
 
    ```bash
    python src/actualizar_corpus.py
    ```
 
-   El feed entrega solo las últimas ~100 notas por consulta, así que el corpus depende de cada cuánto se
-   ejecute el script. En Windows se puede automatizar con el Programador de tareas (por ejemplo, cada 30 minutos).
+   The feed only returns the latest ~100 articles per request, so the corpus depends on how often the script
+   is run. On Windows it can be automated with Task Scheduler (for example, every 30 minutes).
 
-3. Abrir `notebooks/analisis.ipynb` y ejecutarlo de arriba hacia abajo. Lee `data/noticias_infobae.csv`.
+3. Open `notebooks/analisis.ipynb` and run it from top to bottom. It reads `data/noticias_infobae.csv`.
 
-**Importante:** los resultados dependen del corpus. Con otras notas cambiarán los números, la cantidad de temas
-de BERTopic y la numeración de los grupos de KMeans. El diccionario `nombres_km` del notebook (que le pone
-nombre a cada grupo) se asignó a mano para `SEED=42` y para el corpus original, por lo que hay que revisarlo
-si el corpus es distinto.
+**Important:** the results depend on the corpus. With other articles, the numbers, the number of BERTopic topics
+and the numbering of the KMeans groups will change. The `nombres_km` dictionary in the notebook (which names each
+group) was assigned by hand for `SEED=42` and for the original corpus, so it must be reviewed
+if the corpus is different.
 
-## Sobre los datos
+## About the data
 
-El corpus contiene el texto completo de las notas, que tiene derechos de autor, por eso **no se incluye
-en el repositorio**. Se reconstruye con el script. Antes de usarlo, conviene revisar los términos de uso del sitio.
+The corpus contains the full text of the articles, which is copyrighted, so it is **not included
+in the repository**. It is rebuilt with the script. Before using it, it is advisable to review the site's terms of use.
 
-Los resultados de este repositorio se obtuvieron con **2500 notas** (se descargaron 2503; se descartaron
-3 sin texto) publicadas entre el **23 de octubre de 2026 (19:00 UTC)** y el **27 de octubre de 2026 (03:27 UTC)**,
-es decir, unas 80 horas.
+The results in this repository were obtained with **2,500 articles** (2,503 were downloaded; 3 without text were
+discarded) published between **October 23, 2026 (19:00 UTC)** and **October 27, 2026 (03:27 UTC)**,
+that is, about 80 hours.
 
-## Resultados
+## Results
 
-| Tarea | Método | Métrica | Resultado |
+| Task | Method | Metric | Result |
 |---|---|---|---|
-| Predecir la edición (5 clases, 1852 notas) | Baseline: siempre `america` | accuracy | 0.42 |
-| | TF-IDF + regresión logística (nota completa) | F1 macro | 0.85 |
-| | TF-IDF + regresión logística (primeras 90 palabras) | F1 macro | 0.79 |
-| | Embeddings + regresión logística | F1 macro | 0.65 |
-| Descubrir temas sin etiquetas (2500 notas) | KMeans | k elegido / silhouette | k=10 / 0.100 |
-| | BERTopic | temas / notas sin tema | 24 / 271 (11%) |
-| Clasificar por tema sin entrenar (7 clases, 312 notas) | Baseline: siempre `deportes` | accuracy | 0.20 |
-| | Zero-shot con embeddings | accuracy / F1 macro | 0.67 / 0.65 |
+| Predict the edition (5 classes, 1,852 articles) | Baseline: always `america` | accuracy | 0.42 |
+| | TF-IDF + logistic regression (full article) | macro F1 | 0.85 |
+| | TF-IDF + logistic regression (first 90 words) | macro F1 | 0.79 |
+| | Embeddings + logistic regression | macro F1 | 0.65 |
+| Discover topics without labels (2,500 articles) | KMeans | chosen k / silhouette | k=10 / 0.100 |
+| | BERTopic | topics / articles without a topic | 24 / 271 (11%) |
+| Classify by topic without training (7 classes, 312 articles) | Baseline: always `deportes` | accuracy | 0.20 |
+| | Zero-shot with embeddings | accuracy / macro F1 | 0.67 / 0.65 |
 
-Lo que se observó:
+What was observed:
 
-- **Edición:** TF-IDF supera a los embeddings por 14 puntos de F1 macro con texto de largo comparable
-  (0.79 contra 0.65) y por 20 con la nota completa (0.85). La confusión principal es entre `america` y `espana`:
-  203 de los 313 errores (65%).
-- **Temas:** KMeans con k entre 8 y 12 da silhouette parecido (0.089 a 0.100). Con BERTopic, 16 de los 24 temas
-  tienen al menos el 75% de sus notas en un único grupo de KMeans.
-- **Clasificación por tema:** deportes y salud se clasifican mejor; tecnología y cultura pierden más de la mitad de
-  sus notas. Los errores más grandes son tecnología → cultura (15 notas, sobre todo YouTube, videojuegos y contenido con IA)
-  y cultura → crimen (9 notas, cuatro de ellas el mismo hecho).
+- **Edition:** TF-IDF beats embeddings by 14 macro F1 points with text of comparable length
+  (0.79 vs. 0.65) and by 20 with the full article (0.85). The main confusion is between `america` and `espana`:
+  203 of the 313 errors (65%).
+- **Topics:** KMeans with k between 8 and 12 gives a similar silhouette (0.089 to 0.100). With BERTopic, 16 of the 24 topics
+  have at least 75% of their articles in a single KMeans group.
+- **Topic classification:** sports (`deportes`) and health (`salud`) are classified best; technology and culture lose more than half of
+  their articles. The largest errors are technology → culture (15 articles, mostly YouTube, video games and AI-related content)
+  and culture → crime (9 articles, four of them about the same event).
 
-## Limitaciones
+## Limitations
 
-- El corpus cubre unas 80 horas, por lo que varios temas corresponden a un único hecho publicado en varias notas
-  (un grupo de KMeans de 193 notas trata casi solo del balotaje de Brasil). En la validación cruzada, notas sobre el
-  mismo hecho pueden quedar repartidas entre entrenamiento y prueba, lo que puede inflar los resultados.
-- El feed solo entrega las últimas notas: los períodos en que el script no se ejecutó quedan sin cubrir.
-- Los hiperparámetros (`C`, `class_weight`, `k` de KMeans, `min_cluster_size` y `min_samples` de HDBSCAN)
-  se eligieron mirando resultados sobre el mismo corpus, así que los números pueden ser algo optimistas.
-- En BERTopic hubo que fijar `min_cluster_size` y `min_samples` explícitamente: con `min_cluster_size=10` salieron
-  82 temas, y con `min_cluster_size=30` y `min_samples=5`, un solo tema reunía 514 notas. En una etapa anterior,
-  con 683 notas, el valor por defecto de `min_samples` produjo solo 4 temas.
-- Las etiquetas de la clasificación por tema vienen de la sección de la URL (criterio del medio, no anotación propia),
-  cubren solo 312 notas, y la categoría `crimen` tiene apenas 21.
-- KMeans, BERTopic y el zero-shot usan los mismos embeddings, que leen solo los primeros ~128 tokens de cada nota.
-  La coincidencia entre ellos no es una validación independiente.
-- La interpretación de los grupos se basó en pocos títulos por grupo y en palabras clave: es una lectura cualitativa,
-  no una medición.
+- The corpus covers about 80 hours, so several topics correspond to a single event published across several articles
+  (a KMeans group of 193 articles is almost entirely about Brazil's runoff election). In cross-validation, articles about the
+  same event may be split between training and test, which can inflate the results.
+- The feed only returns the latest articles: periods when the script was not run are left uncovered.
+- The hyperparameters (`C`, `class_weight`, KMeans `k`, HDBSCAN `min_cluster_size` and `min_samples`)
+  were chosen by looking at results on the same corpus, so the numbers may be somewhat optimistic.
+- In BERTopic, `min_cluster_size` and `min_samples` had to be set explicitly: with `min_cluster_size=10`, 82 topics
+  came out, and with `min_cluster_size=30` and `min_samples=5`, a single topic gathered 514 articles. At an earlier stage,
+  with 683 articles, the default value of `min_samples` produced only 4 topics.
+- The topic classification labels come from the URL section (the outlet's criterion, not my own annotation),
+  cover only 312 articles, and the `crimen` category has just 21.
+- KMeans, BERTopic and the zero-shot approach use the same embeddings, which read only the first ~128 tokens of each article.
+  Agreement among them is not an independent validation.
+- The interpretation of the groups was based on a few titles per group and on keywords: it is a qualitative reading,
+  not a measurement.
 
-## Tecnologías
+## Tech stack
 
 Python, requests, BeautifulSoup, pandas, scikit-learn, spaCy, sentence-transformers
-(`paraphrase-multilingual-MiniLM-L12-v2`), UMAP, HDBSCAN y BERTopic.
+(`paraphrase-multilingual-MiniLM-L12-v2`), UMAP, HDBSCAN and BERTopic.
 
-## Posibles extensiones
+## Possible extensions
 
-- Acumular más días y evaluar con una separación temporal (entrenar con los primeros días, probar con los últimos).
-- Anotar etiquetas propias, con un conjunto de prueba separado.
-- Comparar el zero-shot con un modelo de inferencia (NLI) sobre las mismas 312 notas.
-- Fine-tuning de un modelo en español para clasificar por tema.
-- Reconocimiento de entidades (NER) para describir cada edición.
+- Accumulate more days and evaluate with a temporal split (train on the first days, test on the last).
+- Annotate my own labels, with a separate test set.
+- Compare the zero-shot approach with an inference model (NLI) on the same 312 articles.
+- Fine-tune a Spanish-language model to classify by topic.
+- Named entity recognition (NER) to describe each edition.
